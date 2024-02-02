@@ -1,0 +1,205 @@
+---
+title: "map and data"
+output: html_document
+date: "2024-02-02"
+---
+```{r}
+library(tidyverse)
+library(rgdal)      # for spTransform() & project()
+library(ggplot2)    # for ggplot()
+```
+
+
+
+```{r cars}
+data.new<- read.csv(file = ".../RTime_region.csv", sep=';')
+names(data.new)
+data.new1<-data.new[data.new$alien_freq==0,]
+site<-data.new1[,c("Longitude","Latitude","R.c18.mean")]
+names(site)[1:2]<-c("long","lat")
+site1<-site%>%drop_na()
+
+#alien site
+data.new2<-data.new[data.new$alien_freq>=1,]
+site.alien<-data.new2[,c("Longitude","Latitude","R.c18.mean","alien_all")]
+names(site.alien)[1:2]<-c("long","lat")
+site.alien<-site.alien%>%drop_na()
+
+```
+#make fig1a
+```{r}
+# __________ Load ready to use data from GitHub
+load(url("https://github.com/valentinitnelav/RandomScripts/blob/master/NaturalEarth.RData?raw=true"))
+
+PROJ <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +ellps=WGS84 +datum=WGS84 +units=m +no_defs" 
+# or use the short form "+proj=robin"
+NE_countries_rob  <- spTransform(NE_countries, CRSobj = PROJ)
+NE_graticules_rob <- spTransform(NE_graticules, CRSobj = PROJ)
+NE_box_rob        <- spTransform(NE_box, CRSobj = PROJ)
+
+# project long-lat coordinates for graticule label data frames 
+# (two extra columns with projected XY are created)
+prj.coord <- project(cbind(lbl.Y$lon, lbl.Y$lat), proj=PROJ)
+lbl.Y.prj <- cbind(prj.coord, lbl.Y)
+names(lbl.Y.prj)[1:2] <- c("X.prj","Y.prj")
+#delete to show 10,30,50,70
+lbl.Y.prj<-lbl.Y.prj[lbl.Y.prj$lat!=10&lbl.Y.prj$lat!=30&lbl.Y.prj$lat!=50&lbl.Y.prj$lat!=70&
+                     lbl.Y.prj$lat!=-10&lbl.Y.prj$lat!=-30&lbl.Y.prj$lat!=-50&lbl.Y.prj$lat!=-70   ,]
+
+prj.coord <- project(cbind(lbl.X$lon, lbl.X$lat), proj=PROJ)
+lbl.X.prj <- cbind(prj.coord, lbl.X)
+names(lbl.X.prj)[1:2] <- c("X.prj","Y.prj")
+#delete to show 10,30,50,70
+lbl.X.prj<-lbl.X.prj[lbl.X.prj$lon!=140&lbl.X.prj$lon!=100&lbl.X.prj$lon!=60&lbl.X.prj$lon!=20&
+                     lbl.X.prj$lon!=-140&lbl.X.prj$lon!=-100&lbl.X.prj$lon!=-60&lbl.X.prj$lon!=-20,]
+####################
+#add the sites without alien from local assembalges
+gcd_rob=project(cbind(site1$long,site1$lat),PROJ)
+gcd=data.frame(long=gcd_rob[,1],lat=gcd_rob[,2],time=site1$R.c18.mean)
+ 
+gcd_rob_alien=project(cbind(site.alien$long,site.alien$lat),PROJ)
+gcd_alien=data.frame(long=gcd_rob_alien[,1],lat=gcd_rob_alien[,2],time=site.alien$R.c18.mean,prop=site.alien$alien_all)
+
+# __________ Plot layers
+fig1a<-ggplot() +
+    # add Natural Earth countries projected to Robinson, give black border and fill with gray
+    geom_polygon(data=NE_countries_rob, aes(long,lat, group=group), colour="grey60", fill="gray80", size = 0.25) +
+    # Note: "Regions defined for each Polygons" warning has to do with fortify transformation. Might get deprecated in future!
+    # alternatively, use use map_data(NE_countries) to transform to data frame and then use project() to change to desired projection.
+    # add Natural Earth box projected to Robinson
+    geom_polygon(data=NE_box_rob, aes(x=long, y=lat), colour="grey50", fill="transparent", size = 0.25) +
+    # add graticules projected to Robinson
+    geom_path(data=NE_graticules_rob, aes(long, lat, group=group), linetype="dotted", color="grey80", size = 0.25) +
+    # add graticule labels - latitude and longitude
+    geom_text(data = lbl.Y.prj, aes(x = X.prj, y = Y.prj, label = lbl), color="grey30", size=2) +
+    geom_text(data = lbl.X.prj, aes(x = X.prj, y = Y.prj, label = lbl), color="grey30", size=2) +
+    geom_point(data=gcd, aes(x=as.numeric(long),y=as.numeric(lat)),
+               pch=1,color="black",alpha=0.3)+
+    #scale_size_area(max_size = 8,breaks=c(40,80,120,150),name='Residence time (years)')+
+    geom_point(data=gcd_alien, aes(long,lat, color=time,size=prop),pch=1)+
+    scale_color_gradient(name="Residence time",low = "blue3", high = "yellow2")+
+    scale_size_continuous(range = c(0.1, 8),name="Proportions" )+
+    # the default, ratio = 1 in coord_fixed ensures that one unit on the x-axis is the same length as one unit on the y-axis
+    coord_fixed(ratio = 1) +
+    # remove the background and default gridlines
+    theme_void()+
+    theme(legend.direction="vertical",
+          legend.background = element_rect(fill = "white", size = 1, colour = "white"),
+          legend.text = element_text(colour="black", size=10))
+fig1a
+ggsave(fig1a,filename = '.../fig1a.last.tiff',compression='lzw',width =8,height = 5,dpi=300)
+```
+#all taxa
+```{r}
+data.new2<-data.new[data.new$alien_freq>=1,]
+
+fig1b<-ggplot(data.new2, aes(x = R.c18.mean, y = alien_all)) +
+
+  geom_point(size=2,color ="tan1",alpha=0.6,shape=1)+
+  labs(x="Residence time (years)", y = "Alien proportions")+
+  scale_y_continuous(limits=c(0,1.1),breaks=seq(0,1,0.3))+
+  scale_x_continuous(limits=c(0,156),breaks=seq(0,150,50))+
+  geom_vline(xintercept=88.56675, linetype="dashed", color = "gray50")+
+  geom_hline(yintercept=0.2576444, linetype="dashed", color = "gray50")+
+  theme_linedraw()+
+  theme(
+        #legend.key=element_blank(), 
+        axis.ticks.length=unit(0.08,"inch"),
+        axis.text.x = element_text(colour = "black", size = 8), 
+        axis.text.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = c(0.13,0.7),
+        legend.key.size = unit(0.8, 'lines'),
+        legend.title = element_text(colour = "black", size = 8),
+        legend.text = element_blank())
+fig1b
+ggsave(fig1b,filename = '.../fig1b.tiff',
+       compression='lzw',width =1.7,height = 2,dpi=300)
+```
+
+#birds
+```{r}
+data.new2<-data.new[data.new$alien_freq>=1&data.new$taxa=="Birds",]
+
+fig1c<-ggplot(data.new2, aes(x = R.c18.mean, y = alien_all)) +
+  geom_point(size=2,color ="tan1",alpha=0.6,shape=1)+
+  labs(x="Residence time (years)", y = "Alien proportions")+
+  scale_y_continuous(limits=c(0,1.1),breaks=seq(0,1,0.3))+
+  scale_x_continuous(limits=c(0,156),breaks=seq(0,150,50))+
+  geom_vline(xintercept= 62.68684, linetype="dashed", color = "gray50")+
+  geom_hline(yintercept=0.1829323, linetype="dashed", color = "gray50")+
+  theme_linedraw()+
+  theme(
+        #legend.key=element_blank(), 
+        axis.ticks.length=unit(0.08,"inch"),
+        axis.text.x = element_text(colour = "black", size = 8), 
+        axis.text.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = c(0.13,0.7),
+        legend.key.size = unit(0.8, 'lines'),
+        legend.title = element_text(colour = "black", size = 8),
+        legend.text = element_blank())
+fig1c
+ggsave(fig1c,filename = '.../fig1c.new.tiff',
+       compression='lzw',width =1.7,height = 2,dpi=300)
+```
+
+#mammals
+```{r}
+data.new2<-data.new[data.new$alien_freq>=1&data.new$taxa=="Mammals",]
+
+
+fig1d<-ggplot(data.new2, aes(x = R.c18.mean, y = alien_all)) +
+  geom_point(size=2,color ="tan1",alpha=0.6,shape=1)+
+  labs(x="Residence time (years)", y = "Alien proportions")+
+  scale_y_continuous(limits=c(0,1.1),breaks=seq(0,1,0.3))+
+  scale_x_continuous(limits=c(0,156),breaks=seq(0,150,50))+
+  geom_vline(xintercept= 93.78828, linetype="dashed", color = "gray50")+
+  geom_hline(yintercept=0.6969809, linetype="dashed", color = "gray50")+
+  theme_linedraw()+
+  theme(
+        #legend.key=element_blank(), 
+        axis.ticks.length=unit(0.08,"inch"),
+        axis.text.x = element_text(colour = "black", size = 8), 
+        axis.text.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = c(0.13,0.7),
+        legend.key.size = unit(0.8, 'lines'),
+        legend.title = element_text(colour = "black", size = 8),
+        legend.text = element_blank())
+fig1d
+ggsave(fig1d,filename = '.../fig1d.tiff',
+       compression='lzw',width =1.7,height = 2,dpi=300)
+```
+
+#vascular plants
+```{r}
+data.new2<-data.new[data.new$alien_freq>=1&data.new$taxa=="Vascular plants",]
+
+fig1e<-ggplot(data.new2, aes(x = R.c18.mean, y = alien_all)) +
+  geom_point(size=2,color ="tan1",alpha=0.6,shape=1)+
+  labs(x="Residence time (years)", y = "Alien proportions")+
+  scale_y_continuous(limits=c(0,1.1),breaks=seq(0,1,0.3))+
+  scale_x_continuous(limits=c(0,156),breaks=seq(0,150,50))+
+  geom_vline(xintercept= 97.40556, linetype="dashed", color = "gray50")+
+  geom_hline(yintercept=0.190374, linetype="dashed", color = "gray50")+
+  theme_linedraw()+
+  theme(
+        #legend.key=element_blank(), 
+        axis.ticks.length=unit(0.08,"inch"),
+        axis.text.x = element_text(colour = "black", size = 8), 
+        axis.text.y = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        legend.position = c(0.13,0.7),
+        legend.key.size = unit(0.8, 'lines'),
+        legend.title = element_text(colour = "black", size = 8),
+        legend.text = element_blank())
+fig1e
+ggsave(fig1e,filename = '.../fig1.f.tiff',
+       compression='lzw',width =1.7,height = 2,dpi=300)
+```
+
