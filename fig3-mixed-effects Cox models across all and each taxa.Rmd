@@ -1,0 +1,235 @@
+---
+title: "fig 3 mixed model"
+output: html_document
+date: "2024-02-02"
+---
+
+```{r setup, include=FALSE}
+db<-read.csv(file = '/Users/daijunliu/Dropbox/1 EXPERIMENTAL WORK/PAPER/30 invasion history/manuscript/2024.01.09/submission/data and code/RTime_species.csv',sep=";",stringsAsFactors=T)
+levels(db$LU)
+db$LU<-
+  factor(db$LU,c("Primary","Secondary","Plantation-Pasture","Cropland-Urban"))
+```
+#birds
+```{r}
+names(db)
+fit1_mix_re_sp <- coxme(Surv(sp_RT,Alien.presence ,type="right") ~ LU+(1| species_region), data=db[db$taxa=="Birds",])
+
+summary(fit1_mix_re_sp)
+#get the values
+all.data<-data.frame(LU=c("Primary","Secondary","Plantation-Pasture","Cropland-Urban"),
+                     coef=c(0,-1.253427, 1.635799,2.652531),
+                     coef.se=c(0,0.03422527,0.02008312,0.01109171),
+                     p.value=c(0,0.001,0.001,0.001))
+all.data$LU<-as.factor(all.data$LU)
+all.data$LU <- factor(all.data$LU, levels=c("Primary","Secondary","Plantation-Pasture","Cropland-Urban"))
+levels(all.data$LU)
+
+plot.bird<-
+  ggplot(all.data, aes(x=LU, y=coef, group=LU, color=LU)) + 
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.3)+
+   geom_pointrange(aes(ymin=coef-coef.se, ymax=coef+coef.se),size=1)+
+   scale_y_continuous(limits=c(-1.5,3),breaks=seq(-1.5,3,1.5)) +
+   scale_color_manual(values = c("#0000FFFF","#00FFFFFF","darkgoldenrod3", "#FF0000FF"))+
+   ylab("Coefficients")+
+   theme_linedraw()+
+   theme(
+    panel.background = element_rect(color="black",fill="white"), 
+    panel.grid = element_blank(),
+    axis.text.y = element_text(colour = "black",  size = 12),
+    axis.text.x = element_text(colour = "black",  size = 12),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 8),
+  legend.title = element_text(size=10),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 8),
+  legend.position= "none",
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+plot.bird
+ggsave(plot.bird,filename = '.../fig3b.tiff',compression='lzw', width = 6,height = 3.5,dpi=200)
+```
+#birds
+```{r}
+names(db)
+mixed_bird <- coxme(Surv(sp_RT,Alien.presence ,type="right") ~ LU+(1| species_region), data=db[db$taxa=="Birds",])
+
+summary(mixed_bird)
+#get the values
+all.data<-data.frame(LU=c("Primary","Secondary","Plantation-Pasture","Cropland-Urban"),
+                     coef=c(0,-1.253427, 1.635799,2.652531),
+                     coef.se=c(0,0.03422527,0.02008312,0.01109171),
+                     p.value=c(0,0.001,0.001,0.001))
+all.data$LU<-as.factor(all.data$LU)
+all.data$LU <- factor(all.data$LU, levels=c("Primary","Secondary","Plantation-Pasture","Cropland-Urban"))
+levels(all.data$LU)
+
+plot.bird<-
+  ggplot(all.data, aes(x=LU, y=coef, group=LU, color=LU)) + 
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.3)+
+   geom_pointrange(aes(ymin=coef-coef.se, ymax=coef+coef.se),size=1)+
+   scale_y_continuous(limits=c(-1.5,3),breaks=seq(-1.5,3,1.5)) +
+   scale_color_manual(values = c("#0000FFFF","#00FFFFFF","darkgoldenrod3", "#FF0000FF"))+
+   ylab("Coefficients")+
+   theme_linedraw()+
+   theme(
+    panel.background = element_rect(color="black",fill="white"), 
+    panel.grid = element_blank(),
+    axis.text.y = element_text(colour = "black",  size = 12),
+    axis.text.x = element_text(colour = "black",  size = 12),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 8),
+  legend.title = element_text(size=10),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 8),
+  legend.position= "none",
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+plot.bird
+ggsave(plot.bird,filename = '.../fig3b.tiff',compression='lzw', width = 6,height = 3.5,dpi=200)
+```
+#mammals
+```{r}
+db_mam<-db[db$taxa=="Mammals",]
+db_mam1<-db_mam %>%filter(LU != "Cropland-Urban") %>% droplevels()
+names(db_mam1)
+mix_mam <- coxme(Surv(sp_RT,Alien.presence ,type="right") ~ LU+(1| species_region), 
+                        data=db_mam1[db_mam1$LU != "Cropland-Urban",])
+
+summary(mix_mam)
+#get the values
+all.data<-data.frame(LU=c("Primary","Secondary","Plantation-Pasture","Cropland-Urban"),
+                     coef=c(0,0.2034184,-0.1518211,NA),
+                     coef.se=c(0,0.02302877,0.04149768,NA),
+                     p.value=c(0,0.001,0.001,NA))
+all.data$LU<-as.factor(all.data$LU)
+all.data$LU <- factor(all.data$LU, levels=c("Primary","Secondary","Plantation-Pasture","Cropland-Urban"))
+levels(all.data$LU)
+
+plot.mammal<-
+  ggplot(all.data, aes(x=LU, y=coef, group=LU, color=LU)) + 
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.3)+
+   geom_pointrange(aes(ymin=coef-coef.se, ymax=coef+coef.se),size=1)+
+   scale_y_continuous(limits=c(-0.2,0.3),breaks=seq(-0.15,0.3,0.15)) +
+   scale_color_manual(values = c("#0000FFFF","#00FFFFFF","darkgoldenrod3", "#FF0000FF"))+
+   ylab("Coefficients")+
+   theme_linedraw()+
+   theme(
+    panel.background = element_rect(color="black",fill="white"), 
+    panel.grid = element_blank(),
+    axis.text.y = element_text(colour = "black",  size = 12),
+    axis.text.x = element_text(colour = "black",  size = 12),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 8),
+  legend.title = element_text(size=10),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 8),
+  legend.position= "none",
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+plot.mammal
+ggsave(plot.mammal,filename = '.../fig3c.tiff',compression='lzw', width = 6,height = 3.5,dpi=200)
+
+```
+# vascular plants
+```{r}
+names(db)
+levels(db$taxa)
+mixed_plant <- coxme(Surv(sp_RT,Alien.presence ,type="right") ~ LU+(1| species_region), data=db[db$taxa=="Vascular plants",])
+
+summary(mixed_plant)
+
+all.data<-data.frame(LU=c("Primary","Secondary","Plantation-Pasture","Cropland-Urban"),
+                     coef=c(0,0.3563847,0.2552098,1.5547161),
+                     coef.se=c(0,0.004123162,0.006893324,0.009668036),
+                     p.value=c(0,0.001,0.001,0.001))
+all.data$LU<-as.factor(all.data$LU)
+all.data$LU <- factor(all.data$LU, levels=c("Primary","Secondary","Plantation-Pasture","Cropland-Urban"))
+levels(all.data$LU)
+
+plot.plant<-
+  ggplot(all.data, aes(x=LU, y=coef, group=LU, color=LU)) + 
+    geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.3)+
+   geom_pointrange(aes(ymin=coef-coef.se, ymax=coef+coef.se),size=1)+
+   scale_y_continuous(limits=c(-0.1,1.8),breaks=seq(0,1.8,0.6)) +
+   scale_color_manual(values = c("#0000FFFF","#00FFFFFF","darkgoldenrod3", "#FF0000FF"))+
+   ylab("Coefficients")+
+   theme_linedraw()+
+   theme(
+    panel.background = element_rect(color="black",fill="white"), 
+    panel.grid = element_blank(),
+    axis.text.y = element_text(colour = "black",  size = 12),
+    axis.text.x = element_text(colour = "black",  size = 12),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 8),
+  legend.title = element_text(size=10),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 8),
+  legend.position= "none",
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+plot.plant
+ggsave(plot.plant,filename = '.../fig3d.tiff',compression='lzw', width = 6.0,height = 3.5,dpi=200)
+```
+# all taxa
+```{r}
+mixed_all <- coxme(Surv(sp_RT,Alien.presence ,type="right") ~ LU+(1| species_region), data=db)
+
+summary(mixed_all)
+
+all.data<-data.frame(LU=c("Primary","Secondary","Plantation-Pasture","Cropland-Urban"),
+                     coef=c(0,0.3006182,0.3323700,1.9799766),
+                     coef.se=c(0,0.003941579,0.006512290,0.006934206),
+                     p.value=c(0,0.001,0.001,0.001))
+all.data$LU<-as.factor(all.data$LU)
+all.data$LU <- factor(all.data$LU, levels=c("Primary","Secondary","Plantation-Pasture","Cropland-Urban"))
+levels(all.data$LU)
+
+plot.all<-
+  ggplot(all.data, aes(x=LU, y=coef, group=LU, color=LU)) + 
+  geom_hline(yintercept=0, linetype="dashed", color = "black", size=0.3)+
+   geom_pointrange(aes(ymin=coef-coef.se, ymax=coef+coef.se),size=1)+
+   scale_y_continuous(limits=c(-0.1,2.1),breaks=seq(0,2,0.6)) +
+   scale_color_manual(values = c("#0000FFFF","#00FFFFFF","darkgoldenrod3", "#FF0000FF"))+
+   ylab("Coefficients")+
+   theme_linedraw()+
+   theme(
+    panel.background = element_rect(color="black",fill="white"), 
+    panel.grid = element_blank(),
+    axis.text.y = element_text(colour = "black",  size = 12),
+    axis.text.x = element_text(colour = "black",  size = 12),
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    legend.key=element_blank(),
+  legend.text = element_text(colour="black", size = 8),
+  legend.title = element_text(size=10),
+  legend.key.size = unit(0.5, 'cm'),
+  legend.background = element_blank(),
+  text = element_text(size = 8),
+  legend.position= "none",
+  axis.ticks.length.y = unit(.3, "cm"),
+  axis.ticks.length.x = unit(.3, "cm")
+  )
+plot.all
+ggsave(plot.all,filename = '.../fig3a.tiff',compression='lzw', width = 6,height = 3.5,dpi=200)
+```
+
+
+
+
